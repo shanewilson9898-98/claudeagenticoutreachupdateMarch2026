@@ -41,14 +41,15 @@ return items
     const row = item.json;
 
     // Skip if LinkedIn already found
-    if (isValidLinkedInProfile(row.linkedin_url)) return null;
+    if (isValidLinkedInProfile(row.linkedin_url || row['Founder Linkedin'])) return null;
 
-    const company   = (row.company_name || '').trim();
-    const firstName = (row.first_name   || '').trim();
-    const email     = (row.email        || '').trim();
+    // Support both canonical snake_case names and legacy sheet column names
+    const company   = (row.company_name  || row['Company Name']  || '').trim();
+    const firstName = (row.first_name    || row['First Name']    || '').trim();
+    const email     = (row.email         || row['Email']         || '').trim();
 
     // Prefer website domain; fall back to email domain
-    const websiteDomain = normalizeDomain(row.website_url);
+    const websiteDomain = normalizeDomain(row.website_url || row['Url']);
     const emailDomain   = email.includes('@') ? normalizeDomain(email.split('@')[1]) : '';
     const domain        = websiteDomain || emailDomain;
 
