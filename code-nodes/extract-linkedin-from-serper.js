@@ -18,17 +18,16 @@
 //   actual target. A scoring function is faster, cheaper, and more reliable.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const serperResponse = $input.first().json;
+// A Merge node (combineByPosition) upstream combines:
+//   input 0 — Serper HTTP response
+//   input 1 — lead fields from Sanitize Query (passed on parallel branch)
+// So items[0].json contains ALL fields from both sources.
 
-// The HTTP Request node replaces item data with the Serper response.
-// Lead fields must be pulled from the upstream Sanitize Query node.
-// Also handles legacy field names (with spaces) in case sheet columns
-// haven't been renamed yet.
-const lead = $('Sanitize Query').first().json;
+const data = items[0].json;
 
-const firstName   = (lead.first_name   || lead['First Name']   || '').toLowerCase().trim();
-const companyName = (lead.company_name || lead['Company Name'] || '').toLowerCase().trim();
-const domainRaw   = (lead.domain       || lead.normalized_domain || '').toLowerCase().trim();
+const firstName   = (data.first_name   || data['First Name']   || '').toLowerCase().trim();
+const companyName = (data.company_name || data['Company Name'] || '').toLowerCase().trim();
+const domainRaw   = (data.domain       || data.normalized_domain || '').toLowerCase().trim();
 // e.g. "acme.com" → "acme"
 const domainToken = domainRaw.split('.')[0];
 

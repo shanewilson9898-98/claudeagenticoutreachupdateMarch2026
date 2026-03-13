@@ -1,13 +1,22 @@
 {
-  "name": "01 — Ingest + Enrich (Refactored)",
+  "name": "01 \u2014 Ingest + Enrich (Refactored)",
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [{ "field": "hours" }] }
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
       },
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "id": "wf1-node-01",
       "name": "Schedule Trigger"
     },
@@ -23,7 +32,10 @@
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "id": "wf1-node-02",
       "name": "Search Drive Folder",
       "credentials": {
@@ -32,7 +44,7 @@
           "name": "Google Drive account 8"
         }
       },
-      "notes": "Limit 1 — process one file per hourly run. Files queue naturally."
+      "notes": "Limit 1 \u2014 process one file per hourly run. Files queue naturally."
     },
     {
       "parameters": {
@@ -42,11 +54,16 @@
           "value": "={{ $json.id }}",
           "mode": "id"
         },
-        "options": { "googleFileConversion": {} }
+        "options": {
+          "googleFileConversion": {}
+        }
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "id": "wf1-node-03",
       "name": "Download File",
       "credentials": {
@@ -64,7 +81,10 @@
       },
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1.1,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "id": "wf1-node-04",
       "name": "Extract from File"
     },
@@ -74,7 +94,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "id": "wf1-node-05",
       "name": "Parse PitchBook"
     },
@@ -96,29 +119,119 @@
           "mappingMode": "defineBelow",
           "value": {
             "pitchbook_url": "={{ $json.pitchbook_url }}",
-            "company_name":  "={{ $json.company_name }}",
-            "website_url":   "={{ $json.website_url }}",
-            "first_name":    "={{ $json.first_name }}",
-            "email":         "={{ $json.email }}",
-            "about":         "={{ $json.about }}",
-            "date_added":    "={{ $json.date_added }}",
-            "batch_id":      "={{ $json.batch_id }}",
-            "channel":       "={{ $json.channel }}",
-            "contacted_at":  "={{ $json.contacted_at }}"
+            "company_name": "={{ $json.company_name }}",
+            "website_url": "={{ $json.website_url }}",
+            "first_name": "={{ $json.first_name }}",
+            "email": "={{ $json.email }}",
+            "about": "={{ $json.about }}",
+            "date_added": "={{ $json.date_added }}",
+            "batch_id": "={{ $json.batch_id }}",
+            "channel": "={{ $json.channel }}",
+            "contacted_at": "={{ $json.contacted_at }}"
           },
-          "matchingColumns": ["pitchbook_url"],
+          "matchingColumns": [
+            "pitchbook_url"
+          ],
           "schema": [
-            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "company_name",  "displayName": "company_name",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "website_url",   "displayName": "website_url",   "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "first_name",    "displayName": "first_name",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "email",         "displayName": "email",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "linkedin_url",  "displayName": "linkedin_url",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "about",         "displayName": "about",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "date_added",    "displayName": "date_added",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "batch_id",      "displayName": "batch_id",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "channel",       "displayName": "channel",       "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "contacted_at",  "displayName": "contacted_at",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            {
+              "id": "pitchbook_url",
+              "displayName": "pitchbook_url",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "about",
+              "displayName": "about",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_added",
+              "displayName": "date_added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "batch_id",
+              "displayName": "batch_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contacted_at",
+              "displayName": "contacted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -127,7 +240,10 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [1340, 300],
+      "position": [
+        1340,
+        300
+      ],
       "id": "wf1-node-06",
       "name": "Write All Leads to Source Sheet",
       "credentials": {
@@ -136,13 +252,18 @@
           "name": "SendToWoodpeckerDB"
         }
       },
-      "notes": "Upsert by pitchbook_url — always present, unique. ALL records written regardless of email."
+      "notes": "Upsert by pitchbook_url \u2014 always present, unique. ALL records written regardless of email."
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1560, 300],
+      "position": [
+        1560,
+        300
+      ],
       "id": "wf1-node-07",
       "name": "Loop Over Leads"
     },
@@ -158,7 +279,10 @@
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [1780, 160],
+      "position": [
+        1780,
+        160
+      ],
       "id": "wf1-node-08",
       "name": "Delete Source File",
       "credentials": {
@@ -175,7 +299,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 380],
+      "position": [
+        1780,
+        380
+      ],
       "id": "wf1-node-09",
       "name": "Prep LinkedIn Lookup"
     },
@@ -185,7 +312,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 380],
+      "position": [
+        2000,
+        380
+      ],
       "id": "wf1-node-10",
       "name": "Sanitize Query"
     },
@@ -202,7 +332,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 380],
+      "position": [
+        2220,
+        380
+      ],
       "id": "wf1-node-11",
       "name": "Serper Search",
       "credentials": {
@@ -211,15 +344,18 @@
           "name": "Serper API"
         }
       },
-      "notes": "Direct HTTP call — no AI agent. Set credential to your Serper Header Auth credential."
+      "notes": "Direct HTTP call \u2014 no AI agent. Set credential to your Serper Header Auth credential."
     },
     {
       "parameters": {
-        "jsCode": "// The HTTP Request node replaces item data with the Serper response.\n// Lead fields (company_name, first_name, etc.) must be pulled from the\n// upstream Sanitize Query node, not from items[0].json.\n\nconst serper = items[0].json;  // Serper API response\nconst lead   = $('Sanitize Query').first().json;  // Lead fields from before HTTP call\n\nconst firstName   = (lead.first_name    || lead['First Name']    || '').toLowerCase().trim();\nconst companyName = (lead.company_name  || lead['Company Name']  || '').toLowerCase().trim();\nconst domainRaw   = (lead.domain        || lead.normalized_domain || '').toLowerCase().trim();\nconst domainToken = domainRaw.split('.')[0];\n\nconst organic    = serper.organic   || [];\nconst knowledge  = serper.knowledgeGraph ? [serper.knowledgeGraph] : [];\nconst allResults = [...organic, ...knowledge];\n\nconst candidates = [];\nfor (const r of allResults) {\n  const url     = (r.link || r.website || '').trim();\n  const title   = (r.title   || r.description || '').toLowerCase();\n  const snippet = (r.snippet || '').toLowerCase();\n  if (url.toLowerCase().includes('linkedin.com/in/')) {\n    candidates.push({ url, text: `${title} ${snippet}` });\n  }\n}\n\nfunction score(c) {\n  const t = c.text;\n  let s = 0;\n  if (firstName   && t.includes(firstName))   s += 4;\n  if (companyName && t.includes(companyName)) s += 3;\n  if (domainToken && t.includes(domainToken)) s += 2;\n  if (t.includes('reid hoffman'))                          s -= 20;\n  if (c.url.toLowerCase().includes('reidhoffman'))         s -= 20;\n  if (t.includes('co-founder of linkedin'))               s -= 20;\n  if (c.url.toLowerCase().includes('/in/linkedin'))        s -= 10;\n  return s;\n}\n\ncandidates.sort((a, b) => score(b) - score(a));\nconst best      = candidates[0];\nconst bestScore = best ? score(best) : -99;\nconst linkedInUrl = (best && bestScore > 0) ? best.url : '';\n\nreturn [{\n  json: {\n    pitchbook_url:            lead.pitchbook_url || '',\n    email:                    lead.email         || '',\n    linkedin_url:             linkedInUrl,\n    _debug_query_used:        lead.primary_query || '',\n    _debug_first_name:        firstName,\n    _debug_company_name:      companyName,\n    _debug_candidates_found:  candidates.length,\n    _debug_best_score:        bestScore,\n  },\n}];"
+        "jsCode": "// A Merge node upstream combines:\n//   input 0 \u2014 Serper HTTP response\n//   input 1 \u2014 lead fields from Sanitize Query (passed on parallel branch)\n// So items[0].json contains ALL fields from both sources.\n\nconst data = items[0].json;\n\nconst firstName   = (data.first_name   || data['First Name']   || '').toLowerCase().trim();\nconst companyName = (data.company_name || data['Company Name'] || '').toLowerCase().trim();\nconst domainRaw   = (data.domain       || data.normalized_domain || '').toLowerCase().trim();\nconst domainToken = domainRaw.split('.')[0];\n\nconst organic    = data.organic   || [];\nconst knowledge  = data.knowledgeGraph ? [data.knowledgeGraph] : [];\nconst allResults = [...organic, ...knowledge];\n\nconst candidates = [];\nfor (const r of allResults) {\n  const url     = (r.link || r.website || '').trim();\n  const title   = (r.title   || r.description || '').toLowerCase();\n  const snippet = (r.snippet || '').toLowerCase();\n  if (url.toLowerCase().includes('linkedin.com/in/')) {\n    candidates.push({ url, text: `${title} ${snippet}` });\n  }\n}\n\nfunction score(c) {\n  const t = c.text;\n  let s = 0;\n  if (firstName   && t.includes(firstName))   s += 4;\n  if (companyName && t.includes(companyName)) s += 3;\n  if (domainToken && t.includes(domainToken)) s += 2;\n  if (t.includes('reid hoffman'))                          s -= 20;\n  if (c.url.toLowerCase().includes('reidhoffman'))         s -= 20;\n  if (t.includes('co-founder of linkedin'))               s -= 20;\n  if (c.url.toLowerCase().includes('/in/linkedin'))        s -= 10;\n  return s;\n}\n\ncandidates.sort((a, b) => score(b) - score(a));\nconst best      = candidates[0];\nconst bestScore = best ? score(best) : -99;\nconst linkedInUrl = (best && bestScore > 0) ? best.url : '';\n\nreturn [{\n  json: {\n    pitchbook_url:            data.pitchbook_url || '',\n    email:                    data.email         || '',\n    linkedin_url:             linkedInUrl,\n    _debug_query_used:        data.primary_query || '',\n    _debug_first_name:        firstName,\n    _debug_company_name:      companyName,\n    _debug_candidates_found:  candidates.length,\n    _debug_best_score:        bestScore,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2440, 380],
+      "position": [
+        2660,
+        380
+      ],
       "id": "wf1-node-14",
       "name": "Extract LinkedIn from Results",
       "notes": "Scores candidates by name/company match. Returns empty string if no confident match. Explicitly penalises Reid Hoffman and other LinkedIn corporate false positives."
@@ -242,12 +378,30 @@
           "mappingMode": "defineBelow",
           "value": {
             "pitchbook_url": "={{ $json.pitchbook_url }}",
-            "linkedin_url":  "={{ $json.linkedin_url }}"
+            "linkedin_url": "={{ $json.linkedin_url }}"
           },
-          "matchingColumns": ["pitchbook_url"],
+          "matchingColumns": [
+            "pitchbook_url"
+          ],
           "schema": [
-            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "linkedin_url",  "displayName": "linkedin_url",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            {
+              "id": "pitchbook_url",
+              "displayName": "pitchbook_url",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -256,7 +410,10 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [2660, 380],
+      "position": [
+        2660,
+        380
+      ],
       "id": "wf1-node-15",
       "name": "Update LinkedIn in Source Sheet",
       "credentials": {
@@ -265,7 +422,7 @@
           "name": "SendToWoodpeckerDB"
         }
       },
-      "notes": "Match key: pitchbook_url. Only writes linkedin_url — does not overwrite other fields."
+      "notes": "Match key: pitchbook_url. Only writes linkedin_url \u2014 does not overwrite other fields."
     },
     {
       "parameters": {
@@ -273,7 +430,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, 380],
+      "position": [
+        2880,
+        380
+      ],
       "id": "wf1-node-16",
       "name": "Assign Channel"
     },
@@ -295,12 +455,30 @@
           "mappingMode": "defineBelow",
           "value": {
             "pitchbook_url": "={{ $json.pitchbook_url }}",
-            "channel":       "={{ $json.channel }}"
+            "channel": "={{ $json.channel }}"
           },
-          "matchingColumns": ["pitchbook_url"],
+          "matchingColumns": [
+            "pitchbook_url"
+          ],
           "schema": [
-            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "channel",       "displayName": "channel",       "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            {
+              "id": "pitchbook_url",
+              "displayName": "pitchbook_url",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -309,7 +487,10 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [3100, 380],
+      "position": [
+        3100,
+        380
+      ],
       "id": "wf1-node-17",
       "name": "Update Channel in Source Sheet",
       "credentials": {
@@ -323,60 +504,215 @@
       "parameters": {},
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [3320, 380],
+      "position": [
+        3320,
+        380
+      ],
       "id": "wf1-node-18",
       "name": "Back to Loop",
       "notes": "Connect this output to Loop Over Leads input 0 to continue the batch."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2440,
+        380
+      ],
+      "id": "wf1-node-merge-serper",
+      "name": "Merge Serper + Lead",
+      "notes": "Combines Serper HTTP response (input 0) with lead fields from Sanitize Query (input 1). After the HTTP Request node replaces item data, this restores lead context on the same item."
     }
   ],
   "connections": {
     "Schedule Trigger": {
-      "main": [[{ "node": "Search Drive Folder", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Search Drive Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Search Drive Folder": {
-      "main": [[{ "node": "Download File", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Download File": {
-      "main": [[{ "node": "Extract from File", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract from File": {
-      "main": [[{ "node": "Parse PitchBook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse PitchBook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse PitchBook": {
-      "main": [[{ "node": "Write All Leads to Source Sheet", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write All Leads to Source Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Write All Leads to Source Sheet": {
-      "main": [[{ "node": "Loop Over Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Over Leads": {
       "main": [
-        [{ "node": "Delete Source File", "type": "main", "index": 0 }],
-        [{ "node": "Prep LinkedIn Lookup", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Delete Source File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep LinkedIn Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prep LinkedIn Lookup": {
-      "main": [[{ "node": "Sanitize Query", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Sanitize Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Sanitize Query": {
-      "main": [[{ "node": "Serper Search", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Serper Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Serper + Lead",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Serper Search": {
-      "main": [[{ "node": "Extract LinkedIn from Results", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge Serper + Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract LinkedIn from Results": {
-      "main": [[{ "node": "Update LinkedIn in Source Sheet", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update LinkedIn in Source Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update LinkedIn in Source Sheet": {
-      "main": [[{ "node": "Assign Channel", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Assign Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Assign Channel": {
-      "main": [[{ "node": "Update Channel in Source Sheet", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update Channel in Source Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update Channel in Source Sheet": {
-      "main": [[{ "node": "Loop Over Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Serper + Lead": {
+      "main": [
+        [
+          {
+            "node": "Extract LinkedIn from Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "active": false,
   "_readme": [
     "CREDENTIAL UPDATES REQUIRED AFTER IMPORT:",
@@ -398,8 +734,8 @@
     "- channel field computed and stored after enrichment",
     "- Simple Memory removed from AI agent",
     "- File processing limited to 1 file per run (files queue via hourly schedule)",
-    "- AI agent removed from LinkedIn lookup entirely — no more hallucinated URLs",
-    "- LinkedIn lookup is now: Serper HTTP call → score results by name/company match",
+    "- AI agent removed from LinkedIn lookup entirely \u2014 no more hallucinated URLs",
+    "- LinkedIn lookup is now: Serper HTTP call \u2192 score results by name/company match",
     "- Reid Hoffman and LinkedIn corporate false positives explicitly penalised",
     "- OpenAI no longer called during enrichment (faster, cheaper, no GPT errors)"
   ]
