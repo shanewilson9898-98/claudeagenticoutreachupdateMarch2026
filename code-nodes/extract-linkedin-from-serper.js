@@ -20,13 +20,15 @@
 
 const serperResponse = $input.first().json;
 
-// Lead fields were passed through on the item before the HTTP call.
-// Reference them from the upstream prep node.
-const lead = $('Prep LinkedIn Lookup').first().json;
+// The HTTP Request node replaces item data with the Serper response.
+// Lead fields must be pulled from the upstream Sanitize Query node.
+// Also handles legacy field names (with spaces) in case sheet columns
+// haven't been renamed yet.
+const lead = $('Sanitize Query').first().json;
 
-const firstName   = (lead.first_name    || '').toLowerCase().trim();
-const companyName = (lead.company_name  || '').toLowerCase().trim();
-const domainRaw   = (lead.domain        || '').toLowerCase().trim();
+const firstName   = (lead.first_name   || lead['First Name']   || '').toLowerCase().trim();
+const companyName = (lead.company_name || lead['Company Name'] || '').toLowerCase().trim();
+const domainRaw   = (lead.domain       || lead.normalized_domain || '').toLowerCase().trim();
 // e.g. "acme.com" → "acme"
 const domainToken = domainRaw.split('.')[0];
 
@@ -83,12 +85,14 @@ const linkedInUrl = (best && bestScore > 0) ? best.url : '';
 
 return [{
   json: {
-    pitchbook_url: lead.pitchbook_url || '',
-    email:         lead.email         || '',
-    linkedin_url:  linkedInUrl,
-    // Debug fields — remove these once you've confirmed it's working
+    pitchbook_url:           lead.pitchbook_url || '',
+    email:                   lead.email         || '',
+    linkedin_url:            linkedInUrl,
+    // Debug fields — remove once confirmed working
+    _debug_query_used:       lead.primary_query || '',
+    _debug_first_name:       firstName,
+    _debug_company_name:     companyName,
     _debug_candidates_found: candidates.length,
     _debug_best_score:       bestScore,
-    _debug_best_url:         best ? best.url : '',
   },
 }];
