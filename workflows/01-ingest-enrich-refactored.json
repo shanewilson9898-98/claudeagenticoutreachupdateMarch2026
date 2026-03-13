@@ -191,81 +191,38 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "=You are a LinkedIn profile finder. You MUST call the search tool.\n\nRecord:\n- Company: {{ $json.company_name }}\n- First name: {{ $json.first_name }}\n- Domain: {{ $json.domain }}\n- Search query: {{ $json.primary_query }}\n\nInstructions:\n1. Call the Serper search tool with the provided search query.\n2. Look through the results for a LinkedIn /in/ profile URL that matches the founder or CEO of the company.\n3. Verify the URL contains 'linkedin.com/in/' — not /company/, not /pub/.\n4. If you find a confident match, return it. If you are not confident, return an empty string.\n\nOutput ONLY valid JSON with exactly these keys:\n{\n  \"linkedin_url\": \"https://www.linkedin.com/in/... or empty string\"\n}\n\nNo markdown. No commentary. No other keys.",
-        "options": {
-          "systemMessage": "You are a data lookup function. You must call the search tool. Output valid JSON only. Return empty linkedin_url if not confident. Do not fabricate URLs."
-        }
-      },
-      "id": "wf1-node-11",
-      "name": "Find LinkedIn URL",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [2220, 380]
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "id",
-          "value": "gpt-4o-mini"
-        },
-        "options": {}
-      },
-      "id": "wf1-node-12",
-      "name": "OpenAI Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [2120, 560],
-      "credentials": {
-        "openAiApi": {
-          "id": "PmqY70iz2HZXau9i",
-          "name": "emailsender"
-        }
-      }
-    },
-    {
-      "parameters": {
         "method": "POST",
         "url": "https://google.serper.dev/search",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-KEY",
-              "value": "={{ $credentials.serperApiKey }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            { "name": "q",   "value": "={{ $json.primary_query }}" },
-            { "name": "num", "value": "=10" }
-          ]
-        },
+        "contentType": "json",
+        "jsonBody": "={{ JSON.stringify({ q: $json.primary_query, num: 10 }) }}",
         "options": {}
       },
-      "type": "n8n-nodes-base.httpRequestTool",
-      "typeVersion": 4.3,
-      "position": [2380, 560],
-      "id": "wf1-node-13",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 380],
+      "id": "wf1-node-11",
       "name": "Serper Search",
-      "notes": "IMPORTANT: Move the Serper API key to an n8n credential (HTTP Header Auth type) and reference it via $credentials.serperApiKey — do not hardcode the key in this node."
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_SERPER_CREDENTIAL_ID",
+          "name": "Serper API"
+        }
+      },
+      "notes": "Direct HTTP call — no AI agent. Set credential to your Serper Header Auth credential."
     },
     {
       "parameters": {
-        "jsCode": "// See code-nodes/normalize-linkedin.js for annotated version\n\nfunction isValidLinkedInProfile(s) {\n  if (!s) return false;\n  const v = String(s).toLowerCase().trim();\n  return v.includes('linkedin.com/in/') || v.includes('linkedin.com/pub/');\n}\n\nfunction parseAgentOutput(raw) {\n  if (!raw) return null;\n  const cleaned = String(raw).replace(/```json|```/g, '').trim();\n  try { return JSON.parse(cleaned); }\n  catch { return null; }\n}\n\nreturn items.map(item => {\n  const raw = item.json.output || '';\n  const obj = parseAgentOutput(raw);\n\n  const linkedInUrl = obj && isValidLinkedInProfile(obj.linkedin_url)\n    ? obj.linkedin_url.trim()\n    : '';\n\n  return {\n    json: {\n      pitchbook_url: item.json.pitchbook_url || '',\n      email:         item.json.email         || '',\n      linkedin_url:  linkedInUrl,\n    },\n  };\n});"
+        "jsCode": "// See code-nodes/extract-linkedin-from-serper.js for annotated version\n// No LLM — extracts and scores LinkedIn URLs directly from Serper results.\n\nconst serper = items[0].json;\n\n// Lead fields are on the same item (passed through from Prep LinkedIn Lookup)\nconst firstName   = (serper.first_name    || '').toLowerCase().trim();\nconst companyName = (serper.company_name  || '').toLowerCase().trim();\nconst domainRaw   = (serper.domain        || '').toLowerCase().trim();\nconst domainToken = domainRaw.split('.')[0];\n\nconst organic   = serper.organic   || [];\nconst knowledge = serper.knowledgeGraph ? [serper.knowledgeGraph] : [];\nconst allResults = [...organic, ...knowledge];\n\nconst candidates = [];\nfor (const r of allResults) {\n  const url     = (r.link || r.website || '').trim();\n  const title   = (r.title   || r.description || '').toLowerCase();\n  const snippet = (r.snippet || '').toLowerCase();\n  if (url.toLowerCase().includes('linkedin.com/in/')) {\n    candidates.push({ url, text: `${title} ${snippet}` });\n  }\n}\n\nfunction score(c) {\n  const t = c.text;\n  let s = 0;\n  if (firstName   && t.includes(firstName))   s += 4;\n  if (companyName && t.includes(companyName)) s += 3;\n  if (domainToken && t.includes(domainToken)) s += 2;\n  // Penalise well-known false positives\n  if (t.includes('reid hoffman'))                           s -= 20;\n  if (c.url.toLowerCase().includes('reidhoffman'))          s -= 20;\n  if (t.includes('co-founder of linkedin'))                s -= 20;\n  if (c.url.toLowerCase().includes('/in/linkedin'))         s -= 10;\n  return s;\n}\n\ncandidates.sort((a, b) => score(b) - score(a));\nconst best      = candidates[0];\nconst bestScore = best ? score(best) : -99;\nconst linkedInUrl = (best && bestScore > 0) ? best.url : '';\n\nreturn [{\n  json: {\n    pitchbook_url:            serper.pitchbook_url || '',\n    email:                    serper.email         || '',\n    linkedin_url:             linkedInUrl,\n    _debug_candidates_found:  candidates.length,\n    _debug_best_score:        bestScore,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [2440, 380],
       "id": "wf1-node-14",
-      "name": "Normalize LinkedIn Result"
+      "name": "Extract LinkedIn from Results",
+      "notes": "Scores candidates by name/company match. Returns empty string if no confident match. Explicitly penalises Reid Hoffman and other LinkedIn corporate false positives."
     },
     {
       "parameters": {
@@ -401,18 +358,12 @@
       "main": [[{ "node": "Sanitize Query", "type": "main", "index": 0 }]]
     },
     "Sanitize Query": {
-      "main": [[{ "node": "Find LinkedIn URL", "type": "main", "index": 0 }]]
-    },
-    "Find LinkedIn URL": {
-      "main": [[{ "node": "Normalize LinkedIn Result", "type": "main", "index": 0 }]]
-    },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [[{ "node": "Find LinkedIn URL", "type": "ai_languageModel", "index": 0 }]]
+      "main": [[{ "node": "Serper Search", "type": "main", "index": 0 }]]
     },
     "Serper Search": {
-      "ai_tool": [[{ "node": "Find LinkedIn URL", "type": "ai_tool", "index": 0 }]]
+      "main": [[{ "node": "Extract LinkedIn from Results", "type": "main", "index": 0 }]]
     },
-    "Normalize LinkedIn Result": {
+    "Extract LinkedIn from Results": {
       "main": [[{ "node": "Update LinkedIn in Source Sheet", "type": "main", "index": 0 }]]
     },
     "Update LinkedIn in Source Sheet": {
@@ -447,6 +398,9 @@
     "- channel field computed and stored after enrichment",
     "- Simple Memory removed from AI agent",
     "- File processing limited to 1 file per run (files queue via hourly schedule)",
-    "- Serper query prompt now requires tool call — no hallucinated URLs"
+    "- AI agent removed from LinkedIn lookup entirely — no more hallucinated URLs",
+    "- LinkedIn lookup is now: Serper HTTP call → score results by name/company match",
+    "- Reid Hoffman and LinkedIn corporate false positives explicitly penalised",
+    "- OpenAI no longer called during enrichment (faster, cheaper, no GPT errors)"
   ]
 }
