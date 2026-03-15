@@ -69,14 +69,14 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": 1600426108,
+          "value": 444594302,
           "mode": "list",
-          "cachedResultName": "AutoAdded"
+          "cachedResultName": "AutoAdded_postMar2026"
         },
         "filtersUI": {
           "values": [
             {
-              "lookupColumn": "contacted_at",
+              "lookupColumn": "Contacted",
               "lookupValue": ""
             }
           ]
@@ -90,11 +90,11 @@
       "name": "Get Uncontacted Leads",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "tYgShUIY4lNz9IiN",
-          "name": "SendToWoodpeckerDB"
+          "id": "c2M6vAN97qJzGarp",
+          "name": "March2026_Refactor_Prospector"
         }
       },
-      "notes": "Filter: contacted_at is empty. Uses same credential as all other sheet nodes."
+      "notes": "Filter: Contacted column is empty. Sheet column is 'Contacted' (not 'contacted_at'). Tab: AutoAdded_postMar2026."
     },
     {
       "parameters": { "options": {} },
@@ -106,7 +106,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// See code-nodes/channel-router.js for annotated version\n\nfunction isValidLinkedInProfile(s) {\n  if (!s) return false;\n  const v = String(s).toLowerCase().trim();\n  return v.includes('linkedin.com/in/') || v.includes('linkedin.com/pub/');\n}\n\nfunction getChannel(record) {\n  const hasEmail    = !!(record.email || '').trim();\n  const hasLinkedIn = isValidLinkedInProfile(record.linkedin_url);\n  if (hasEmail && hasLinkedIn)  return 'email_linkedin';\n  if (hasLinkedIn && !hasEmail) return 'linkedin_only';\n  if (hasEmail && !hasLinkedIn) return 'email_only';\n  return 'none';\n}\n\nreturn items.map(item => ({\n  json: { ...item.json, channel: getChannel(item.json) }\n}));"
+        "jsCode": "// See code-nodes/channel-router.js for annotated version\n// NOTE: uses actual source sheet column names (Email, 'Founder Linkedin'), NOT canonical names.\n// Canonical renaming happens later in 'Coalesce & Normalize'.\n\nfunction isValidLinkedInProfile(s) {\n  if (!s) return false;\n  const v = String(s).toLowerCase().trim();\n  return v.includes('linkedin.com/in/') || v.includes('linkedin.com/pub/');\n}\n\nfunction getChannel(record) {\n  const hasEmail    = !!(record.Email || '').trim();\n  const hasLinkedIn = isValidLinkedInProfile(record['Founder Linkedin']);\n  if (hasEmail && hasLinkedIn)  return 'email_linkedin';\n  if (hasLinkedIn && !hasEmail) return 'linkedin_only';\n  if (hasEmail && !hasLinkedIn) return 'email_only';\n  return 'none';\n}\n\nreturn items.map(item => ({\n  json: { ...item.json, channel: getChannel(item.json) }\n}));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -120,7 +120,7 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "email_linkedin", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
@@ -129,7 +129,7 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "linkedin_only", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
@@ -138,7 +138,7 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "email_only", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
@@ -147,7 +147,7 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "none", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
@@ -163,52 +163,52 @@
       "position": [1560, 400],
       "id": "wf2-node-07",
       "name": "Route by Channel",
-      "notes": "Output 0: email_linkedin | Output 1: linkedin_only | Output 2: email_only | Output 3: none"
+      "notes": "Output 0: email_linkedin | Output 1: linkedin_only | Output 2: email_only | Output 3: none (dead end)"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.about }}\n- Channel: {{ $json.channel }}\n\nTask: Generate TWO short personalization fields.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"email\" (used when channel includes email):\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nRULES FOR \"linkedin\" (used when channel includes linkedin):\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nIf channel is \"linkedin_only\": return email as empty string \"\".\nIf channel is \"email_only\": return linkedin as empty string \"\".\n\nNo markdown. No commentary. JSON only.",
+        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: {{ $json.channel }}\n\nTask: Generate TWO short personalization fields.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"email\" (used when channel includes email):\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nRULES FOR \"linkedin\" (used when channel includes linkedin):\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nIf channel is \"linkedin_only\": return email as empty string \"\".\nIf channel is \"email_only\": return linkedin as empty string \"\".\n\nNo markdown. No commentary. JSON only.",
         "options": {
           "systemMessage": "You are a personalization function. Output valid JSON only. Never fabricate. Use only information explicitly provided. Return defaults when unsure."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [1780, 280],
+      "position": [1780, 200],
       "id": "wf2-node-08",
       "name": "AI Personalize (email+linkedin)",
-      "notes": "Used for email_linkedin channel"
+      "notes": "Used for email_linkedin channel. Output is {output: '...'} only — original fields preserved via Preserve Data (email+linkedin) merge node."
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are a LinkedIn outreach writer for Citta Capital.\n\nInputs:\n- Company: {{ $json.company_name }}\n- About: {{ $json.about }}\n- Channel: linkedin_only\n\nTask: Generate the LinkedIn personalization phrase only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"linkedin\":\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nemail must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
+        "text": "=You are a LinkedIn outreach writer for Citta Capital.\n\nInputs:\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: linkedin_only\n\nTask: Generate the LinkedIn personalization phrase only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"linkedin\":\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nemail must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
         "options": {
           "systemMessage": "You are a personalization function. Output valid JSON only. email field must be empty string."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [1780, 460],
+      "position": [1780, 400],
       "id": "wf2-node-09",
       "name": "AI Personalize (linkedin-only)",
-      "notes": "Used for linkedin_only channel"
+      "notes": "Used for linkedin_only channel. Output is {output: '...'} only — original fields preserved via Preserve Data (linkedin-only) merge node."
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.about }}\n- Channel: email_only\n\nTask: Generate the email personalization field only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"\"\n}\n\nRULES FOR \"email\":\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nlinkedin must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
+        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: email_only\n\nTask: Generate the email personalization field only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"\"\n}\n\nRULES FOR \"email\":\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nlinkedin must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
         "options": {
           "systemMessage": "You are a personalization function. Output valid JSON only. linkedin field must be empty string."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [1780, 640],
+      "position": [1780, 600],
       "id": "wf2-node-10",
       "name": "AI Personalize (email-only)",
-      "notes": "Used for email_only channel"
+      "notes": "Used for email_only channel. Output is {output: '...'} only — original fields preserved via Preserve Data (email-only) merge node."
     },
     {
       "parameters": {
@@ -230,7 +230,46 @@
           "name": "emailsender"
         }
       },
-      "notes": "Connect this as ai_languageModel to all three AI Personalize nodes above."
+      "notes": "Connect as ai_languageModel to all three AI Personalize nodes."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [2000, 200],
+      "id": "wf2-node-19",
+      "name": "Preserve Data (email+linkedin)",
+      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [2000, 400],
+      "id": "wf2-node-20",
+      "name": "Preserve Data (linkedin-only)",
+      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [2000, 600],
+      "id": "wf2-node-21",
+      "name": "Preserve Data (email-only)",
+      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
     },
     {
       "parameters": {
@@ -238,7 +277,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 280],
+      "position": [2220, 200],
       "id": "wf2-node-12",
       "name": "Parse Personalization (email+linkedin)"
     },
@@ -248,7 +287,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 460],
+      "position": [2220, 400],
       "id": "wf2-node-13",
       "name": "Parse Personalization (linkedin-only)"
     },
@@ -258,69 +297,73 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 640],
+      "position": [2220, 600],
       "id": "wf2-node-14",
       "name": "Parse Personalization (email-only)"
     },
     {
       "parameters": {
-        "mode": "passThrough",
-        "output": "all",
-        "options": {}
+        "mode": "append"
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [2220, 460],
+      "position": [2440, 400],
       "id": "wf2-node-15",
       "name": "Rejoin Contactable Channels",
-      "notes": "Merges email_linkedin, linkedin_only, and email_only branches back together before writing to campaign sheet. 'none' channel does NOT connect here — those records are skipped."
+      "notes": "Append mode: collects 1 complete item from whichever branch fired. All 3 branches are mutually exclusive. 'none' channel is NOT connected here."
     },
     {
       "parameters": {
-        "jsCode": "// See code-nodes/coalesce-normalize.js for annotated version\n\n// Step 1: Merge all items into one per lead.\n// The AI LLM Chain node emits 2 items: one with {output} only, one with full\n// prospect data. Coalesce them by keeping the first non-empty value per field.\nconst merged = {};\nfor (const item of items) {\n  for (const [k, v] of Object.entries(item.json)) {\n    if (v !== '' && v !== null && v !== undefined) {\n      if (!(k in merged)) merged[k] = v;\n    } else {\n      if (!(k in merged)) merged[k] = v;\n    }\n  }\n}\n\n// Step 2: Rename non-canonical field names → canonical names used by downstream nodes.\n// Only renames if canonical name not already present.\nconst fieldMap = {\n  'Pitchbook':        'pitchbook_url',\n  'Url':              'website_url',\n  'Email':            'email',\n  'Founder Linkedin': 'linkedin_url',\n  'About':            'about',\n  'Date Added':       'date_added',\n  'Contacted':        'contacted_at',\n};\nfor (const [old, canonical] of Object.entries(fieldMap)) {\n  if (old in merged) {\n    if (!(canonical in merged) || merged[canonical] === '' || merged[canonical] === null) {\n      merged[canonical] = merged[old];\n    }\n    delete merged[old];\n  }\n}\n\nreturn [{ json: merged }];"
+        "jsCode": "// See code-nodes/coalesce-normalize.js for annotated version\n// Renames non-canonical source sheet headers to canonical names.\n// Also coalesces in case any items slipped through unpaired.\n\nconst merged = {};\nfor (const item of items) {\n  for (const [k, v] of Object.entries(item.json)) {\n    if (!(k in merged)) {\n      merged[k] = v;\n    } else if ((merged[k] === '' || merged[k] === null || merged[k] === undefined) &&\n               v !== '' && v !== null && v !== undefined) {\n      merged[k] = v;\n    }\n  }\n}\n\nconst fieldMap = {\n  'Pitchbook':        'pitchbook_url',\n  'Url':              'website_url',\n  'Email':            'email',\n  'Founder Linkedin': 'linkedin_url',\n  'About':            'about',\n  'Date Added':       'date_added',\n  'Contacted':        'contacted_at',\n};\nfor (const [old, canonical] of Object.entries(fieldMap)) {\n  if (old in merged) {\n    if (!(canonical in merged) || merged[canonical] === '' || merged[canonical] === null) {\n      merged[canonical] = merged[old];\n    }\n    delete merged[old];\n  }\n}\n\nreturn [{ json: merged }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2330, 460],
+      "position": [2660, 400],
       "id": "wf2-node-18",
       "name": "Coalesce & Normalize",
-      "notes": "Fixes two issues: (1) merges the 2 items the AI LLM Chain emits per lead into one, keeping non-empty values; (2) renames non-canonical field names (Email, Founder Linkedin, etc.) to canonical names expected by the Sheets node."
+      "notes": "Renames source sheet column names to canonical names. Also safety-coalesces in case any unpaired items arrive."
     },
     {
       "parameters": {
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "1ajOrUzEcfJ3IWvS9ByaFX57VqGA80wh4VCdBPqQAGd0",
+          "value": "1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
-          "value": "={{ $('Get Tab Name').first().json.tabName }}",
+          "value": "Sheet1",
           "mode": "name"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "email":                  "={{ $json.email }}",
-            "linkedin_url":           "={{ $json.linkedin_url }}",
-            "first_name":             "={{ $json.first_name }}",
-            "company":                "={{ $json.company_name }}",
-            "personalized_email":     "={{ $json.personalized_email }}",
-            "personalized_linkedin":  "={{ $json.personalized_linkedin }}",
-            "channel":                "={{ $json.channel }}",
-            "batch_id":               "={{ $json.batch_id }}"
+            "pitchbook_url":        "={{ $json.pitchbook_url }}",
+            "company_name":         "={{ $json.company_name }}",
+            "website_url":          "={{ $json.website_url }}",
+            "first_name":           "={{ $json.first_name }}",
+            "email":                "={{ $json.email }}",
+            "linkedin_url":         "={{ $json.linkedin_url }}",
+            "about":                "={{ $json.about }}",
+            "date_added":           "={{ $json.date_added }}",
+            "channel":              "={{ $json.channel }}",
+            "personalized_email":   "={{ $json.personalized_email }}",
+            "personalized_linkedin":"={{ $json.personalized_linkedin }}"
           },
           "matchingColumns": [],
           "schema": [
-            { "id": "email",                 "displayName": "email",                 "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "linkedin_url",          "displayName": "linkedin_url",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "first_name",            "displayName": "first_name",            "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "company",               "displayName": "company",               "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "personalized_email",    "displayName": "personalized_email",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "personalized_linkedin", "displayName": "personalized_linkedin", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "channel",               "displayName": "channel",               "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "batch_id",              "displayName": "batch_id",              "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            { "id": "pitchbook_url",        "displayName": "pitchbook_url",        "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "company_name",         "displayName": "company_name",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "website_url",          "displayName": "website_url",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "first_name",           "displayName": "first_name",           "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "email",                "displayName": "email",                "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "linkedin_url",         "displayName": "linkedin_url",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "about",                "displayName": "about",                "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "date_added",           "displayName": "date_added",           "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "channel",              "displayName": "channel",              "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_email",   "displayName": "personalized_email",   "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_linkedin","displayName": "personalized_linkedin","required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -329,20 +372,20 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [2440, 460],
+      "position": [2880, 400],
       "id": "wf2-node-16",
       "name": "Append to Campaign Tab",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "tYgShUIY4lNz9IiN",
-          "name": "SendToWoodpeckerDB"
+          "id": "c2M6vAN97qJzGarp",
+          "name": "March2026_Refactor_Prospector"
         }
       },
-      "notes": "Tab name is dynamic: resolves to e.g. 'W2026-11'. Tab must exist — created by 'Create Tab If Not Exists' node at workflow start."
+      "notes": "Writes to Woodpecker campaign loader sheet (Sheet1). All column names are canonical (post-normalization)."
     },
     {
       "parameters": {
-        "operation": "appendOrUpdate",
+        "operation": "update",
         "documentId": {
           "__rl": true,
           "value": "1LCae8FYxx-J4ZqWG49y26DbDr9jM3gIkvmbzxOQiwXM",
@@ -350,20 +393,20 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": 1600426108,
+          "value": 444594302,
           "mode": "list",
-          "cachedResultName": "AutoAdded"
+          "cachedResultName": "AutoAdded_postMar2026"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "pitchbook_url": "={{ $json.pitchbook_url }}",
-            "contacted_at":  "={{ new Date().toISOString() }}"
+            "Pitchbook": "={{ $json.pitchbook_url }}",
+            "Contacted": "={{ $now.format('yyyy-MM-dd') }}"
           },
-          "matchingColumns": ["pitchbook_url"],
+          "matchingColumns": ["Pitchbook"],
           "schema": [
-            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "contacted_at",  "displayName": "contacted_at",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            { "id": "Pitchbook", "displayName": "Pitchbook", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Contacted", "displayName": "Contacted", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -372,20 +415,20 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [2660, 460],
+      "position": [3100, 400],
       "id": "wf2-node-17",
       "name": "Mark Contacted",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "tYgShUIY4lNz9IiN",
-          "name": "SendToWoodpeckerDB"
+          "id": "c2M6vAN97qJzGarp",
+          "name": "March2026_Refactor_Prospector"
         }
       },
-      "notes": "Sets contacted_at to ISO timestamp. Match key: pitchbook_url. Prevents re-processing next run."
+      "notes": "Sets Contacted = today's date. Match key: Pitchbook URL. Prevents re-processing next run. Uses actual source sheet column names."
     }
   ],
   "connections": {
-    "Run Workflow": {
+    "Every Friday 8am": {
       "main": [[{ "node": "Get Tab Name", "type": "main", "index": 0 }]]
     },
     "Get Tab Name": {
@@ -408,20 +451,29 @@
     },
     "Route by Channel": {
       "main": [
-        [{ "node": "AI Personalize (email+linkedin)", "type": "main", "index": 0 }],
-        [{ "node": "AI Personalize (linkedin-only)",  "type": "main", "index": 0 }],
-        [{ "node": "AI Personalize (email-only)",     "type": "main", "index": 0 }],
+        [
+          { "node": "AI Personalize (email+linkedin)",   "type": "main", "index": 0 },
+          { "node": "Preserve Data (email+linkedin)",    "type": "main", "index": 1 }
+        ],
+        [
+          { "node": "AI Personalize (linkedin-only)",    "type": "main", "index": 0 },
+          { "node": "Preserve Data (linkedin-only)",     "type": "main", "index": 1 }
+        ],
+        [
+          { "node": "AI Personalize (email-only)",       "type": "main", "index": 0 },
+          { "node": "Preserve Data (email-only)",        "type": "main", "index": 1 }
+        ],
         []
       ]
     },
     "AI Personalize (email+linkedin)": {
-      "main": [[{ "node": "Parse Personalization (email+linkedin)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Preserve Data (email+linkedin)", "type": "main", "index": 0 }]]
     },
     "AI Personalize (linkedin-only)": {
-      "main": [[{ "node": "Parse Personalization (linkedin-only)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Preserve Data (linkedin-only)", "type": "main", "index": 0 }]]
     },
     "AI Personalize (email-only)": {
-      "main": [[{ "node": "Parse Personalization (email-only)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Preserve Data (email-only)", "type": "main", "index": 0 }]]
     },
     "OpenAI Chat Model": {
       "ai_languageModel": [
@@ -431,6 +483,15 @@
           { "node": "AI Personalize (email-only)",     "type": "ai_languageModel", "index": 0 }
         ]
       ]
+    },
+    "Preserve Data (email+linkedin)": {
+      "main": [[{ "node": "Parse Personalization (email+linkedin)", "type": "main", "index": 0 }]]
+    },
+    "Preserve Data (linkedin-only)": {
+      "main": [[{ "node": "Parse Personalization (linkedin-only)", "type": "main", "index": 0 }]]
+    },
+    "Preserve Data (email-only)": {
+      "main": [[{ "node": "Parse Personalization (email-only)", "type": "main", "index": 0 }]]
     },
     "Parse Personalization (email+linkedin)": {
       "main": [[{ "node": "Rejoin Contactable Channels", "type": "main", "index": 0 }]]
@@ -458,29 +519,34 @@
   "active": false,
   "_readme": [
     "CREDENTIAL UPDATES REQUIRED AFTER IMPORT:",
-    "- Consolidate ALL Google Sheets nodes to ONE credential (currently: SendToWoodpeckerDB)",
-    "- OpenAI Chat Model: update credential if needed",
-    "- Create Tab If Not Exists HTTP Request: must use a Google Sheets OAuth2 credential",
-    "  that has permission to modify the Woodpecker_CampaignLoader spreadsheet",
+    "- All Google Sheets nodes: use 'March2026_Refactor_Prospector' credential",
+    "- Create Tab If Not Exists HTTP Request: same Google Sheets OAuth2 credential",
+    "- OpenAI Chat Model: update if needed",
     "",
-    "SHEET SETUP REQUIRED:",
-    "- Woodpecker_CampaignLoader: ensure column headers exist in at least one existing tab",
-    "  so n8n can infer the schema. Headers: email, linkedin_url, first_name, company,",
-    "  personalized_email, personalized_linkedin, channel, batch_id",
-    "- Source sheet AutoAdded tab: rename columns to canonical schema (see schemas/canonical-lead.js)",
-    "  New filter column is 'contacted_at' (was 'Contacted')",
+    "SOURCE SHEET SCHEMA (AutoAdded_postMar2026):",
+    "  Pitchbook | company_name | Url | first_name | Email | Founder Linkedin | About | Date Added | Contacted",
+    "  NOTE: column names are NOT canonical — Coalesce & Normalize handles renaming.",
+    "  DO NOT rename sheet columns — the workflow is designed to work with them as-is.",
     "",
-    "KEY CHANGES FROM ORIGINAL:",
-    "- Manual tab creation eliminated — tab auto-created as W{YYYY}-{WW} at workflow start",
-    "- Email gate (If node) replaced with Switch on channel field (4 branches)",
-    "- linkedin_only leads now get personalization and are written to campaign sheet",
-    "- email_only leads handled correctly",
-    "- 'none' leads skipped (not marked as contacted — can retry after enrichment)",
-    "- Fragile pairwise zip code (Merge Paired outputs) removed entirely",
-    "- AI output parsed on the same item — no stream merging needed",
-    "- Prepare first message params empty node removed",
-    "- Simple Memory removed from all AI agents",
-    "- 5 different credentials consolidated to 1",
-    "- contacted_at (was 'Contacted') used as filter; match key is pitchbook_url (not email)"
+    "DESTINATION SHEET (Woodpecker campaign loader, Sheet1):",
+    "  pitchbook_url | company_name | website_url | first_name | email | linkedin_url |",
+    "  about | date_added | channel | personalized_email | personalized_linkedin",
+    "",
+    "KEY ARCHITECTURE — DATA PRESERVATION PATTERN:",
+    "  The n8n AI Agent node replaces the item with {output:'...'} only.",
+    "  Each branch uses a 'Preserve Data' merge node (combineByPosition):",
+    "    - input 0: AI agent output {output:'...'}",
+    "    - input 1: original item (direct copy from Route by Channel)",
+    "  The merge zips them so Parse receives both AI output AND all prospect fields.",
+    "",
+    "KEY CHANGES FROM PREVIOUS VERSION:",
+    "- Assign Channel now uses actual sheet column names: Email, 'Founder Linkedin'",
+    "- AI prompts now use $json.About (capital A, actual sheet column name)",
+    "- Added Preserve Data merge nodes for ALL three branches (was only email_only)",
+    "- Removed spurious 'Merge' node that combined linkedin_only + email_only parse results",
+    "- Rejoin Contactable Channels changed to Append mode (was combineByPosition)",
+    "- Get Uncontacted Leads filter now uses 'Contacted' (actual column name)",
+    "- Mark Contacted matches by 'Pitchbook', writes to 'Contacted' (actual column names)",
+    "- Append to Campaign Tab destination: Woodpecker loader Sheet1 (full column set)"
   ]
 }
