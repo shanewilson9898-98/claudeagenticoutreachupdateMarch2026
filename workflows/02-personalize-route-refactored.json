@@ -277,6 +277,17 @@
     },
     {
       "parameters": {
+        "jsCode": "// See code-nodes/coalesce-normalize.js for annotated version\n\n// Step 1: Merge all items into one per lead.\n// The AI LLM Chain node emits 2 items: one with {output} only, one with full\n// prospect data. Coalesce them by keeping the first non-empty value per field.\nconst merged = {};\nfor (const item of items) {\n  for (const [k, v] of Object.entries(item.json)) {\n    if (v !== '' && v !== null && v !== undefined) {\n      if (!(k in merged)) merged[k] = v;\n    } else {\n      if (!(k in merged)) merged[k] = v;\n    }\n  }\n}\n\n// Step 2: Rename non-canonical field names → canonical names used by downstream nodes.\n// Only renames if canonical name not already present.\nconst fieldMap = {\n  'Pitchbook':        'pitchbook_url',\n  'Url':              'website_url',\n  'Email':            'email',\n  'Founder Linkedin': 'linkedin_url',\n  'About':            'about',\n  'Date Added':       'date_added',\n  'Contacted':        'contacted_at',\n};\nfor (const [old, canonical] of Object.entries(fieldMap)) {\n  if (old in merged) {\n    if (!(canonical in merged) || merged[canonical] === '' || merged[canonical] === null) {\n      merged[canonical] = merged[old];\n    }\n    delete merged[old];\n  }\n}\n\nreturn [{ json: merged }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2330, 460],
+      "id": "wf2-node-18",
+      "name": "Coalesce & Normalize",
+      "notes": "Fixes two issues: (1) merges the 2 items the AI LLM Chain emits per lead into one, keeping non-empty values; (2) renames non-canonical field names (Email, Founder Linkedin, etc.) to canonical names expected by the Sheets node."
+    },
+    {
+      "parameters": {
         "operation": "append",
         "documentId": {
           "__rl": true,
@@ -431,6 +442,9 @@
       "main": [[{ "node": "Rejoin Contactable Channels", "type": "main", "index": 2 }]]
     },
     "Rejoin Contactable Channels": {
+      "main": [[{ "node": "Coalesce & Normalize", "type": "main", "index": 0 }]]
+    },
+    "Coalesce & Normalize": {
       "main": [[{ "node": "Append to Campaign Tab", "type": "main", "index": 0 }]]
     },
     "Append to Campaign Tab": {
