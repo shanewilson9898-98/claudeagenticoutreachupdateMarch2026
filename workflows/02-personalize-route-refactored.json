@@ -2,24 +2,15 @@
   "name": "02 — Personalize + Route (Refactored)",
   "nodes": [
     {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "weeks",
-              "weeksInterval": 1,
-              "triggerAtDay": [5],
-              "triggerAtHour": 8,
-              "triggerAtMinute": 0
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [240, 400],
-      "id": "wf2-node-01",
-      "name": "Every Friday 8am"
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        -352
+      ],
+      "id": "9b338526-960e-476b-bb48-aa18f38a2a66",
+      "name": "Run Workflow"
     },
     {
       "parameters": {
@@ -27,8 +18,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 400],
-      "id": "wf2-node-02",
+      "position": [
+        -1360,
+        -352
+      ],
+      "id": "5f24a7dc-b841-4b98-bcf3-52407aa9f885",
       "name": "Get Tab Name",
       "notes": "Outputs { tabName: 'W2026-11' }. All downstream nodes reference this as: {{ $('Get Tab Name').first().json.tabName }}"
     },
@@ -39,18 +33,26 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
-        "contentType": "json",
-        "jsonBody": "={{ JSON.stringify({ requests: [{ addSheet: { properties: { title: $('Get Tab Name').first().json.tabName } } }] }) }}",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 400],
-      "id": "wf2-node-03",
+      "position": [
+        -1136,
+        -352
+      ],
+      "id": "0c2d6b03-88d0-4f6b-aa67-862b1093130e",
       "name": "Create Tab If Not Exists",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -65,19 +67,22 @@
         "documentId": {
           "__rl": true,
           "value": "1LCae8FYxx-J4ZqWG49y26DbDr9jM3gIkvmbzxOQiwXM",
-          "mode": "id"
+          "mode": "list",
+          "cachedResultName": "Pitchbook_thematicResearch_Nov2025",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LCae8FYxx-J4ZqWG49y26DbDr9jM3gIkvmbzxOQiwXM/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": 444594302,
           "mode": "list",
-          "cachedResultName": "AutoAdded_postMar2026"
+          "cachedResultName": "AutoAdded_postMar2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LCae8FYxx-J4ZqWG49y26DbDr9jM3gIkvmbzxOQiwXM/edit#gid=444594302"
         },
         "filtersUI": {
           "values": [
             {
               "lookupColumn": "Contacted",
-              "lookupValue": ""
+              "lookupValue": "={{\"\"}}"
             }
           ]
         },
@@ -85,8 +90,11 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [900, 400],
-      "id": "wf2-node-04",
+      "position": [
+        -912,
+        -352
+      ],
+      "id": "f8261acc-9403-4a42-ae17-e03bd2164567",
       "name": "Get Uncontacted Leads",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -94,121 +102,51 @@
           "name": "March2026_Refactor_Prospector"
         }
       },
-      "notes": "Filter: Contacted column is empty. Sheet column is 'Contacted' (not 'contacted_at'). Tab: AutoAdded_postMar2026."
+      "notes": "Filter: contacted_at is empty. Uses same credential as all other sheet nodes."
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1120, 400],
-      "id": "wf2-node-05",
+      "position": [
+        -688,
+        -352
+      ],
+      "id": "fcc7995b-fbcc-4cc7-a051-84de268af30e",
       "name": "Loop Over Leads"
     },
     {
       "parameters": {
-        "jsCode": "// See code-nodes/channel-router.js for annotated version\n// NOTE: uses actual source sheet column names (Email, 'Founder Linkedin'), NOT canonical names.\n// Canonical renaming happens later in 'Coalesce & Normalize'.\n\nfunction isValidLinkedInProfile(s) {\n  if (!s) return false;\n  const v = String(s).toLowerCase().trim();\n  return v.includes('linkedin.com/in/') || v.includes('linkedin.com/pub/');\n}\n\nfunction getChannel(record) {\n  const hasEmail    = !!(record.Email || '').trim();\n  const hasLinkedIn = isValidLinkedInProfile(record['Founder Linkedin']);\n  if (hasEmail && hasLinkedIn)  return 'email_linkedin';\n  if (hasLinkedIn && !hasEmail) return 'linkedin_only';\n  if (hasEmail && !hasLinkedIn) return 'email_only';\n  return 'none';\n}\n\nreturn items.map(item => ({\n  json: { ...item.json, channel: getChannel(item.json) }\n}));"
+        "jsCode": "function isValidLinkedInProfile(s) {\n  if (!s) return false;\n  const v = String(s).toLowerCase().trim();\n  return v.includes('linkedin.com/in/') || v.includes('linkedin.com/pub/');\n}\n\nfunction getChannel(record) {\n  const hasEmail    = !!(record.Email || '').trim();\n  const hasLinkedIn = isValidLinkedInProfile(record['Founder Linkedin']);\n  if (hasEmail && hasLinkedIn)  return 'email_linkedin';\n  if (hasLinkedIn && !hasEmail) return 'linkedin_only';\n  if (hasEmail && !hasLinkedIn) return 'email_only';\n  return 'none';\n}\n\nreturn items.map(item => ({\n  json: { ...item.json, channel: getChannel(item.json) }\n}));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 400],
-      "id": "wf2-node-06",
+      "position": [
+        -448,
+        -336
+      ],
+      "id": "6aa53222-fd65-48b3-b442-85598e64b1c0",
       "name": "Assign Channel"
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
-                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "email_linkedin", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "email_linkedin"
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
-                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "linkedin_only", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "linkedin_only"
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
-                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "email_only", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "email_only"
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
-                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "none", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "none"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [1560, 400],
-      "id": "wf2-node-07",
-      "name": "Route by Channel",
-      "notes": "Output 0: email_linkedin | Output 1: linkedin_only | Output 2: email_only | Output 3: none (dead end)"
-    },
-    {
-      "parameters": {
         "promptType": "define",
-        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: {{ $json.channel }}\n\nTask: Generate TWO short personalization fields.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"email\" (used when channel includes email):\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nRULES FOR \"linkedin\" (used when channel includes linkedin):\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nIf channel is \"linkedin_only\": return email as empty string \"\".\nIf channel is \"email_only\": return linkedin as empty string \"\".\n\nNo markdown. No commentary. JSON only.",
+        "text": "=You are a personalization function.\n\nInputs:\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n\nTask: Generate both a LinkedIn phrase and an email slug for this company.\n\nReturn ONLY valid JSON:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"email\":\n- NOT a full email. A personalization slug only.\n- 1–2 sentences max.\n- Sentence-ready: designed to follow \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information explicitly in About. No invented details.\n- Do NOT use the fallback unless About is empty or fewer than 10 words.\n- Fallback only if truly unclear: \"Your work in this space stood out to us.\"\n\nRULES FOR \"linkedin\":\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information explicitly in About.\n- Do NOT use the fallback unless About is empty or fewer than 10 words.\n- Fallback only if truly unclear: \"your sector\"\n\nNo markdown. No commentary. JSON only.",
         "options": {
-          "systemMessage": "You are a personalization function. Output valid JSON only. Never fabricate. Use only information explicitly provided. Return defaults when unsure."
+          "systemMessage": ""
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [1780, 200],
-      "id": "wf2-node-08",
-      "name": "AI Personalize (email+linkedin)",
-      "notes": "Used for email_linkedin channel. Output is {output: '...'} only — original fields preserved via Preserve Data (email+linkedin) merge node."
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=You are a LinkedIn outreach writer for Citta Capital.\n\nInputs:\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: linkedin_only\n\nTask: Generate the LinkedIn personalization phrase only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"\",\n  \"linkedin\": \"string\"\n}\n\nRULES FOR \"linkedin\":\n- 1–4 words, neutral industry/function only (e.g. \"autonomous freight\", \"energy management\").\n- No adjectives, no claims, no buzzwords.\n- HARD LIMIT: 30 characters or fewer.\n- Use ONLY information from the About field.\n- If unclear: return exactly \"your sector\"\n\nemail must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
-        "options": {
-          "systemMessage": "You are a personalization function. Output valid JSON only. email field must be empty string."
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.2,
-      "position": [1780, 400],
-      "id": "wf2-node-09",
-      "name": "AI Personalize (linkedin-only)",
-      "notes": "Used for linkedin_only channel. Output is {output: '...'} only — original fields preserved via Preserve Data (linkedin-only) merge node."
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=You are an email-based meeting booker for Citta Capital.\n\nInputs:\n- Sender: Shane Wilson\n- Recipient first name: {{ $json.first_name }}\n- Company: {{ $json.company_name }}\n- About: {{ $json.About }}\n- Channel: email_only\n\nTask: Generate the email personalization field only.\n\nReturn ONLY valid JSON with exactly these keys:\n{\n  \"email\": \"string\",\n  \"linkedin\": \"\"\n}\n\nRULES FOR \"email\":\n- 1–2 sentences, sentence-ready, inserted after: \"I wanted to get in touch with {{ $json.company_name }}.\"\n- Use ONLY information from the About field.\n- If About is vague or empty: return exactly \"Your work in this space stood out to us.\"\n- Do NOT invent metrics, customers, or details not stated.\n\nlinkedin must always be empty string \"\".\n\nNo markdown. No commentary. JSON only.",
-        "options": {
-          "systemMessage": "You are a personalization function. Output valid JSON only. linkedin field must be empty string."
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.2,
-      "position": [1780, 600],
-      "id": "wf2-node-10",
-      "name": "AI Personalize (email-only)",
-      "notes": "Used for email_only channel. Output is {output: '...'} only — original fields preserved via Preserve Data (email-only) merge node."
+      "position": [
+        -32,
+        -352
+      ],
+      "id": "eab7fece-11c7-4a9a-92b5-6d5e39c9657f",
+      "name": "AI Personalize",
+      "notes": "Single agent generates both email and linkedin personalization for all channels."
     },
     {
       "parameters": {
@@ -221,8 +159,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [1900, 820],
-      "id": "wf2-node-11",
+      "position": [
+        -32,
+        -80
+      ],
+      "id": "74859151-e261-46f0-a860-a2449d92732f",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -230,46 +171,7 @@
           "name": "emailsender"
         }
       },
-      "notes": "Connect as ai_languageModel to all three AI Personalize nodes."
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [2000, 200],
-      "id": "wf2-node-19",
-      "name": "Preserve Data (email+linkedin)",
-      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [2000, 400],
-      "id": "wf2-node-20",
-      "name": "Preserve Data (linkedin-only)",
-      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [2000, 600],
-      "id": "wf2-node-21",
-      "name": "Preserve Data (email-only)",
-      "notes": "input 0: AI output {output:'...'} | input 1: original item from Route by Channel. Zips them so Parse gets both the AI output and all prospect fields."
+      "notes": "Connected as ai_languageModel to AI Personalize."
     },
     {
       "parameters": {
@@ -277,51 +179,139 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 200],
-      "id": "wf2-node-12",
-      "name": "Parse Personalization (email+linkedin)"
+      "position": [
+        320,
+        -352
+      ],
+      "id": "b2b4f352-4786-49b6-b796-ecccf2ffad63",
+      "name": "Parse Personalization"
     },
     {
       "parameters": {
-        "jsCode": "function parsePersonalization(raw) {\n  if (!raw) return { email: '', linkedin: '' };\n  const cleaned = String(raw).replace(/```json|```/g, '').trim();\n  try {\n    const obj = JSON.parse(cleaned);\n    return { email: '', linkedin: (obj.linkedin || 'your sector').trim() };\n  } catch {\n    return { email: '', linkedin: 'your sector' };\n  }\n}\n\nreturn items.map(item => {\n  const p = parsePersonalization(item.json.output);\n  const { output, ...rest } = item.json;\n  return {\n    json: { ...rest, personalized_email: '', personalized_linkedin: p.linkedin },\n  };\n});"
+        "jsCode": "// Step 1: Normalize — rename non-canonical headers to canonical names\nconst fieldMap = {\n  'Pitchbook':        'pitchbook_url',\n  'Url':              'website_url',\n  'Email':            'email',\n  'Founder Linkedin': 'linkedin_url',\n  'About':            'about',\n  'Date Added':       'date_added',\n  'Contacted':        'contacted_at',\n};\n\nreturn items.map(item => {\n  const merged = { ...item.json };\n  for (const [old, canonical] of Object.entries(fieldMap)) {\n    if (old in merged) {\n      if (!(canonical in merged) || merged[canonical] === '' || merged[canonical] === null) {\n        merged[canonical] = merged[old];\n      }\n      delete merged[old];\n    }\n  }\n  return { json: merged };\n});"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 400],
-      "id": "wf2-node-13",
-      "name": "Parse Personalization (linkedin-only)"
+      "position": [
+        672,
+        -352
+      ],
+      "id": "9155367b-533a-46df-ae21-074af6400a73",
+      "name": "Normalize Fields"
     },
     {
       "parameters": {
-        "jsCode": "function parsePersonalization(raw) {\n  if (!raw) return { email: '', linkedin: '' };\n  const cleaned = String(raw).replace(/```json|```/g, '').trim();\n  try {\n    const obj = JSON.parse(cleaned);\n    return { email: (obj.email || 'Your work in this space stood out to us.').trim(), linkedin: '' };\n  } catch {\n    return { email: 'Your work in this space stood out to us.', linkedin: '' };\n  }\n}\n\nreturn items.map(item => {\n  const p = parsePersonalization(item.json.output);\n  const { output, ...rest } = item.json;\n  return {\n    json: { ...rest, personalized_email: p.email, personalized_linkedin: '' },\n  };\n});"
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "email_linkedin",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a04bc8f3-d77b-4e39-a48b-014201108014"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "email_linkedin"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "linkedin_only",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6acdb2f3-3fb9-4824-9b03-fdde0a90bce6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "linkedin_only"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "email_only",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2c634c3a-cb48-4836-af25-4dc3a9a36a91"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "email_only"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "none",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cc98301b-a64d-4eab-90eb-b0707ef87ae0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "none"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2220, 600],
-      "id": "wf2-node-14",
-      "name": "Parse Personalization (email-only)"
-    },
-    {
-      "parameters": {
-        "mode": "append"
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [2440, 400],
-      "id": "wf2-node-15",
-      "name": "Rejoin Contactable Channels",
-      "notes": "Append mode: collects 1 complete item from whichever branch fired. All 3 branches are mutually exclusive. 'none' channel is NOT connected here."
-    },
-    {
-      "parameters": {
-        "jsCode": "// See code-nodes/coalesce-normalize.js for annotated version\n// Renames non-canonical source sheet headers to canonical names.\n// Also coalesces in case any items slipped through unpaired.\n\nconst merged = {};\nfor (const item of items) {\n  for (const [k, v] of Object.entries(item.json)) {\n    if (!(k in merged)) {\n      merged[k] = v;\n    } else if ((merged[k] === '' || merged[k] === null || merged[k] === undefined) &&\n               v !== '' && v !== null && v !== undefined) {\n      merged[k] = v;\n    }\n  }\n}\n\nconst fieldMap = {\n  'Pitchbook':        'pitchbook_url',\n  'Url':              'website_url',\n  'Email':            'email',\n  'Founder Linkedin': 'linkedin_url',\n  'About':            'about',\n  'Date Added':       'date_added',\n  'Contacted':        'contacted_at',\n};\nfor (const [old, canonical] of Object.entries(fieldMap)) {\n  if (old in merged) {\n    if (!(canonical in merged) || merged[canonical] === '' || merged[canonical] === null) {\n      merged[canonical] = merged[old];\n    }\n    delete merged[old];\n  }\n}\n\nreturn [{ json: merged }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2660, 400],
-      "id": "wf2-node-18",
-      "name": "Coalesce & Normalize",
-      "notes": "Renames source sheet column names to canonical names. Also safety-coalesces in case any unpaired items arrive."
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1024,
+        -352
+      ],
+      "id": "a4bbc84b-d141-4516-bba6-e046888f6360",
+      "name": "Route by Channel",
+      "notes": "Output 0: email_linkedin | Output 1: linkedin_only | Output 2: email_only | Output 3: none"
     },
     {
       "parameters": {
@@ -329,41 +319,48 @@
         "documentId": {
           "__rl": true,
           "value": "1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw",
-          "mode": "id"
+          "mode": "list",
+          "cachedResultName": "Woodpecker_Campaignloader_pdrive_march2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Sheet1",
-          "mode": "name"
+          "value": 865621358,
+          "mode": "list",
+          "cachedResultName": "Email_Linkedin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit#gid=865621358"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "pitchbook_url":        "={{ $json.pitchbook_url }}",
-            "company_name":         "={{ $json.company_name }}",
-            "website_url":          "={{ $json.website_url }}",
-            "first_name":           "={{ $json.first_name }}",
-            "email":                "={{ $json.email }}",
-            "linkedin_url":         "={{ $json.linkedin_url }}",
-            "about":                "={{ $json.about }}",
-            "date_added":           "={{ $json.date_added }}",
-            "channel":              "={{ $json.channel }}",
-            "personalized_email":   "={{ $json.personalized_email }}",
-            "personalized_linkedin":"={{ $json.personalized_linkedin }}"
+            "pitchbook_url": "={{ $json.pitchbook_url }}",
+            "company_name": "={{ $json.company_name }}",
+            "website_url": "={{ $json.website_url }}",
+            "first_name": "={{ $json.first_name }}",
+            "email": "={{ $json.email }}",
+            "linkedin_url": "={{ $json.linkedin_url }}",
+            "about": "={{ $json.about }}",
+            "date_added": "={{ $json.date_added }}",
+            "channel": "={{ $json.channel }}",
+            "contacted_at": "={{ $json.date_added }}",
+            "personalized_email": "={{ $json.personalized_email }}",
+            "personalized_linkedin": "={{ $json.personalized_linkedin }}"
           },
           "matchingColumns": [],
           "schema": [
-            { "id": "pitchbook_url",        "displayName": "pitchbook_url",        "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "company_name",         "displayName": "company_name",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "website_url",          "displayName": "website_url",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "first_name",           "displayName": "first_name",           "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "email",                "displayName": "email",                "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "linkedin_url",         "displayName": "linkedin_url",         "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "about",                "displayName": "about",                "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "date_added",           "displayName": "date_added",           "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "channel",              "displayName": "channel",              "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "personalized_email",   "displayName": "personalized_email",   "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "personalized_linkedin","displayName": "personalized_linkedin","required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "company_name", "displayName": "company_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "website_url", "displayName": "website_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "first_name", "displayName": "first_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "linkedin_url", "displayName": "linkedin_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "about", "displayName": "about", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "date_added", "displayName": "date_added", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "batch_id", "displayName": "batch_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "channel", "displayName": "channel", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "contacted_at", "displayName": "contacted_at", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_email", "displayName": "personalized_email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_linkedin", "displayName": "personalized_linkedin", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -372,16 +369,155 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [2880, 400],
-      "id": "wf2-node-16",
-      "name": "Append to Campaign Tab",
+      "position": [
+        1376,
+        -544
+      ],
+      "id": "67ec9120-7cb9-476c-9ac1-9659e5296ef9",
+      "name": "Append to Campaign Tab_Email/Linkedin",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "c2M6vAN97qJzGarp",
           "name": "March2026_Refactor_Prospector"
         }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw",
+          "mode": "list",
+          "cachedResultName": "Woodpecker_Campaignloader_pdrive_march2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 274142203,
+          "mode": "list",
+          "cachedResultName": "Linkedin_Only",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit#gid=274142203"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pitchbook_url": "={{ $json.pitchbook_url }}",
+            "company_name": "={{ $json.company_name }}",
+            "website_url": "={{ $json.website_url }}",
+            "first_name": "={{ $json.first_name }}",
+            "email": "={{ $json.email }}",
+            "linkedin_url": "={{ $json.linkedin_url }}",
+            "about": "={{ $json.about }}",
+            "date_added": "={{ $json.date_added }}",
+            "channel": "={{ $json.channel }}",
+            "contacted_at": "={{ $json.date_added }}",
+            "personalized_email": "={{ $json.personalized_email }}",
+            "personalized_linkedin": "={{ $json.personalized_linkedin }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "company_name", "displayName": "company_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "website_url", "displayName": "website_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "first_name", "displayName": "first_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "linkedin_url", "displayName": "linkedin_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "about", "displayName": "about", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "date_added", "displayName": "date_added", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "batch_id", "displayName": "batch_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "channel", "displayName": "channel", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "contacted_at", "displayName": "contacted_at", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_email", "displayName": "personalized_email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_linkedin", "displayName": "personalized_linkedin", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
       },
-      "notes": "Writes to Woodpecker campaign loader sheet (Sheet1). All column names are canonical (post-normalization)."
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        -352
+      ],
+      "id": "710363b3-238d-4fab-a8c8-24736096a613",
+      "name": "Append to Campaign Tab_LinkedinOnly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "c2M6vAN97qJzGarp",
+          "name": "March2026_Refactor_Prospector"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw",
+          "mode": "list",
+          "cachedResultName": "Woodpecker_Campaignloader_pdrive_march2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Email_Only",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZTnmurPs0gc22xn-ERmLxuYSr_-YMgbHMrri8fWVnVw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pitchbook_url": "={{ $json.pitchbook_url }}",
+            "company_name": "={{ $json.company_name }}",
+            "website_url": "={{ $json.website_url }}",
+            "first_name": "={{ $json.first_name }}",
+            "email": "={{ $json.email }}",
+            "linkedin_url": "={{ $json.linkedin_url }}",
+            "about": "={{ $json.about }}",
+            "date_added": "={{ $json.date_added }}",
+            "channel": "={{ $json.channel }}",
+            "personalized_email": "={{ $json.personalized_email }}",
+            "personalized_linkedin": "={{ $json.personalized_linkedin }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "pitchbook_url", "displayName": "pitchbook_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "company_name", "displayName": "company_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "website_url", "displayName": "website_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "first_name", "displayName": "first_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "linkedin_url", "displayName": "linkedin_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "about", "displayName": "about", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "date_added", "displayName": "date_added", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "batch_id", "displayName": "batch_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "channel", "displayName": "channel", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "contacted_at", "displayName": "contacted_at", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_email", "displayName": "personalized_email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "personalized_linkedin", "displayName": "personalized_linkedin", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        -160
+      ],
+      "id": "ee18308f-78fc-4c8a-b4da-04f48429f1be",
+      "name": "Append to Campaign_emailonly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "c2M6vAN97qJzGarp",
+          "name": "March2026_Refactor_Prospector"
+        }
+      }
     },
     {
       "parameters": {
@@ -395,18 +531,35 @@
           "__rl": true,
           "value": 444594302,
           "mode": "list",
-          "cachedResultName": "AutoAdded_postMar2026"
+          "cachedResultName": "AutoAdded_postMar2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LCae8FYxx-J4ZqWG49y26DbDr9jM3gIkvmbzxOQiwXM/edit#gid=444594302"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "Pitchbook": "={{ $json.pitchbook_url }}",
-            "Contacted": "={{ $now.format('yyyy-MM-dd') }}"
+            "Contacted": "={{ $now.format('yyyy-MM-dd') }}",
+            "company_name": "={{ $json.company_name }}",
+            "Url": "={{ $json.website_url }}",
+            "first_name": "={{ $json.first_name }}",
+            "Email": "={{ $json.email }}",
+            "Founder Linkedin": "={{ $json.linkedin_url }}",
+            "About": "={{ $json.about }}",
+            "Date Added": "={{ $json.date_added }}"
           },
-          "matchingColumns": ["Pitchbook"],
+          "matchingColumns": [
+            "Pitchbook"
+          ],
           "schema": [
-            { "id": "Pitchbook", "displayName": "Pitchbook", "required": false, "defaultMatch": true,  "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Contacted", "displayName": "Contacted", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            { "id": "Pitchbook", "displayName": "Pitchbook", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "company_name", "displayName": "company_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Url", "displayName": "Url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "first_name", "displayName": "first_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Email", "displayName": "Email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Founder Linkedin", "displayName": "Founder Linkedin", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "About", "displayName": "About", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Date Added", "displayName": "Date Added", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Contacted", "displayName": "Contacted", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -415,8 +568,11 @@
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [3100, 400],
-      "id": "wf2-node-17",
+      "position": [
+        1728,
+        -352
+      ],
+      "id": "b25273b3-c037-43d5-bee7-3dd6dadee73b",
       "name": "Mark Contacted",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -424,129 +580,182 @@
           "name": "March2026_Refactor_Prospector"
         }
       },
-      "notes": "Sets Contacted = today's date. Match key: Pitchbook URL. Prevents re-processing next run. Uses actual source sheet column names."
+      "notes": "Sets Contacted to ISO date. Match key: Pitchbook. Prevents re-processing next run."
     }
   ],
   "connections": {
-    "Every Friday 8am": {
-      "main": [[{ "node": "Get Tab Name", "type": "main", "index": 0 }]]
+    "Run Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get Tab Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Tab Name": {
-      "main": [[{ "node": "Create Tab If Not Exists", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Create Tab If Not Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Create Tab If Not Exists": {
-      "main": [[{ "node": "Get Uncontacted Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Uncontacted Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Uncontacted Leads": {
-      "main": [[{ "node": "Loop Over Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Over Leads": {
       "main": [
         [],
-        [{ "node": "Assign Channel", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Assign Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Assign Channel": {
-      "main": [[{ "node": "Route by Channel", "type": "main", "index": 0 }]]
-    },
-    "Route by Channel": {
       "main": [
         [
-          { "node": "AI Personalize (email+linkedin)",   "type": "main", "index": 0 },
-          { "node": "Preserve Data (email+linkedin)",    "type": "main", "index": 1 }
-        ],
-        [
-          { "node": "AI Personalize (linkedin-only)",    "type": "main", "index": 0 },
-          { "node": "Preserve Data (linkedin-only)",     "type": "main", "index": 1 }
-        ],
-        [
-          { "node": "AI Personalize (email-only)",       "type": "main", "index": 0 },
-          { "node": "Preserve Data (email-only)",        "type": "main", "index": 1 }
-        ],
-        []
+          {
+            "node": "AI Personalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "AI Personalize (email+linkedin)": {
-      "main": [[{ "node": "Preserve Data (email+linkedin)", "type": "main", "index": 0 }]]
-    },
-    "AI Personalize (linkedin-only)": {
-      "main": [[{ "node": "Preserve Data (linkedin-only)", "type": "main", "index": 0 }]]
-    },
-    "AI Personalize (email-only)": {
-      "main": [[{ "node": "Preserve Data (email-only)", "type": "main", "index": 0 }]]
+    "AI Personalize": {
+      "main": [
+        [
+          {
+            "node": "Parse Personalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "OpenAI Chat Model": {
       "ai_languageModel": [
         [
-          { "node": "AI Personalize (email+linkedin)", "type": "ai_languageModel", "index": 0 },
-          { "node": "AI Personalize (linkedin-only)",  "type": "ai_languageModel", "index": 0 },
-          { "node": "AI Personalize (email-only)",     "type": "ai_languageModel", "index": 0 }
+          {
+            "node": "AI Personalize",
+            "type": "ai_languageModel",
+            "index": 0
+          }
         ]
       ]
     },
-    "Preserve Data (email+linkedin)": {
-      "main": [[{ "node": "Parse Personalization (email+linkedin)", "type": "main", "index": 0 }]]
+    "Parse Personalization": {
+      "main": [
+        [
+          {
+            "node": "Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Preserve Data (linkedin-only)": {
-      "main": [[{ "node": "Parse Personalization (linkedin-only)", "type": "main", "index": 0 }]]
+    "Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "Route by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Preserve Data (email-only)": {
-      "main": [[{ "node": "Parse Personalization (email-only)", "type": "main", "index": 0 }]]
+    "Route by Channel": {
+      "main": [
+        [
+          {
+            "node": "Append to Campaign Tab_Email/Linkedin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append to Campaign Tab_LinkedinOnly",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append to Campaign_emailonly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Parse Personalization (email+linkedin)": {
-      "main": [[{ "node": "Rejoin Contactable Channels", "type": "main", "index": 0 }]]
+    "Append to Campaign Tab_Email/Linkedin": {
+      "main": [
+        [
+          {
+            "node": "Mark Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Parse Personalization (linkedin-only)": {
-      "main": [[{ "node": "Rejoin Contactable Channels", "type": "main", "index": 1 }]]
+    "Append to Campaign Tab_LinkedinOnly": {
+      "main": [
+        [
+          {
+            "node": "Mark Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Parse Personalization (email-only)": {
-      "main": [[{ "node": "Rejoin Contactable Channels", "type": "main", "index": 2 }]]
-    },
-    "Rejoin Contactable Channels": {
-      "main": [[{ "node": "Coalesce & Normalize", "type": "main", "index": 0 }]]
-    },
-    "Coalesce & Normalize": {
-      "main": [[{ "node": "Append to Campaign Tab", "type": "main", "index": 0 }]]
-    },
-    "Append to Campaign Tab": {
-      "main": [[{ "node": "Mark Contacted", "type": "main", "index": 0 }]]
-    },
-    "Mark Contacted": {
-      "main": [[{ "node": "Loop Over Leads", "type": "main", "index": 0 }]]
+    "Append to Campaign_emailonly": {
+      "main": [
+        [
+          {
+            "node": "Mark Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false,
-  "_readme": [
-    "CREDENTIAL UPDATES REQUIRED AFTER IMPORT:",
-    "- All Google Sheets nodes: use 'March2026_Refactor_Prospector' credential",
-    "- Create Tab If Not Exists HTTP Request: same Google Sheets OAuth2 credential",
-    "- OpenAI Chat Model: update if needed",
-    "",
-    "SOURCE SHEET SCHEMA (AutoAdded_postMar2026):",
-    "  Pitchbook | company_name | Url | first_name | Email | Founder Linkedin | About | Date Added | Contacted",
-    "  NOTE: column names are NOT canonical — Coalesce & Normalize handles renaming.",
-    "  DO NOT rename sheet columns — the workflow is designed to work with them as-is.",
-    "",
-    "DESTINATION SHEET (Woodpecker campaign loader, Sheet1):",
-    "  pitchbook_url | company_name | website_url | first_name | email | linkedin_url |",
-    "  about | date_added | channel | personalized_email | personalized_linkedin",
-    "",
-    "KEY ARCHITECTURE — DATA PRESERVATION PATTERN:",
-    "  The n8n AI Agent node replaces the item with {output:'...'} only.",
-    "  Each branch uses a 'Preserve Data' merge node (combineByPosition):",
-    "    - input 0: AI agent output {output:'...'}",
-    "    - input 1: original item (direct copy from Route by Channel)",
-    "  The merge zips them so Parse receives both AI output AND all prospect fields.",
-    "",
-    "KEY CHANGES FROM PREVIOUS VERSION:",
-    "- Assign Channel now uses actual sheet column names: Email, 'Founder Linkedin'",
-    "- AI prompts now use $json.About (capital A, actual sheet column name)",
-    "- Added Preserve Data merge nodes for ALL three branches (was only email_only)",
-    "- Removed spurious 'Merge' node that combined linkedin_only + email_only parse results",
-    "- Rejoin Contactable Channels changed to Append mode (was combineByPosition)",
-    "- Get Uncontacted Leads filter now uses 'Contacted' (actual column name)",
-    "- Mark Contacted matches by 'Pitchbook', writes to 'Contacted' (actual column names)",
-    "- Append to Campaign Tab destination: Woodpecker loader Sheet1 (full column set)"
-  ]
+  "pinData": {},
+  "meta": {
+    "instanceId": "d8c384ab0177d459f6f6bf9a10237e6792ab0f921a1f81201ff531280f56622e"
+  }
 }
