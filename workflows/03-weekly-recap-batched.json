@@ -1,0 +1,339 @@
+{
+  "name": "03 — Weekly Recap Email (Batched AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [5],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [2912, 1136],
+      "id": "45bb4312-1935-4d42-be17-a553f7fcece1",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2477b1e6-b249-81ec-8c71-e7e66e9145ff",
+          "mode": "list",
+          "cachedResultName": "Companies",
+          "cachedResultUrl": "https://www.notion.so/2477b1e6b24981ec8c71e7e66e9145ff"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Last edited time|last_edited_time",
+              "condition": "past_week"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [3152, 1088],
+      "id": "2fb3c7aa-52b1-42f9-bdcd-2b7274edc29a",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "wuZIseOQtrfMmV0J",
+          "name": "Notion account_granolacompatible"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "30a7b1e6-b249-801d-b78a-e5c83c84dc75",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Call Date|date",
+              "condition": "past_week"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [3168, 1280],
+      "id": "3700ebf0-0b08-4d1f-b4eb-567cf18acbaf",
+      "name": "Get meetings this week",
+      "credentials": {
+        "notionApi": {
+          "id": "wuZIseOQtrfMmV0J",
+          "name": "Notion account_granolacompatible"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [3360, 1200],
+      "id": "f5ef5ce9-975c-4a11-9c6b-ea92430f38d0",
+      "name": "Merge weekly inputs"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i => i.json);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3568, 1200],
+      "id": "3b80bdf8-6e5b-4373-a900-a5e085b1f3ea",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const companies = $('Get many database pages').all().map(i => i.json);\nconst meetings = $('Get meetings this week').all().map(i => i.json);\n\nconst now = new Date();\nconst day = now.getDay();\nconst diffToMonday = (day + 6) % 7;\nconst startOfWeek = new Date(now);\nstartOfWeek.setDate(now.getDate() - diffToMonday);\nstartOfWeek.setHours(0, 0, 0, 0);\n\nconst allowedPriorities = new Set(['P0', 'P1', 'P2', 'P3']);\n\nconst isThisWeek = (v) => {\n  if (!v) return false;\n  const d = new Date(v);\n  return !Number.isNaN(d.getTime()) && d >= startOfWeek;\n};\n\nconst clean = (s) => String(s || '').replace(/\\s+/g, ' ').trim();\n\nconst getPriority = (c) => {\n  const raw = c.property_Priority ?? c.property_priority ?? c.Priority ?? '';\n  return allowedPriorities.has(raw) ? raw : 'P2';\n};\n\nconst getName = (c) =>\n  clean(c.property_Name || c.property_name || c.Name || c.name || 'Unknown Company');\n\nconst getWebsite = (c) =>\n  clean(c.property_Website || c.property_website || c.Website || c.url || '');\n\nconst getNotes = (c) =>\n  clean(\n    c.property_first_call_notes ||\n    c.property_First_call_notes ||\n    c.first_call_notes ||\n    ''\n  );\n\nconst getTags = (c) =>\n  clean(c.property_Tags || c.property_tags || c.Tags || c.tags || '');\n\nconst newCompanies = companies\n  .filter(c => isThisWeek(c.property_created_time || c.property_Created_time || c.created_time))\n  .map(c => ({\n    ...c,\n    _priority: getPriority(c),\n    _name: getName(c),\n    _website: getWebsite(c),\n    _notes: getNotes(c),\n    _tags: getTags(c),\n  }));\n\nconst companyById = new Map(companies.map(c => [c.id, c]));\nconst newCompanyIds = new Set(newCompanies.map(c => c.id));\n\nconst getCompanyIdsFromMeeting = (m) => {\n  const relA = m.property_company || m.property_Company;\n  if (Array.isArray(relA)) {\n    return relA.map(x => typeof x === 'string' ? x : x?.id).filter(Boolean);\n  }\n  const relB = m.properties?.Company?.relation;\n  if (Array.isArray(relB)) {\n    return relB.map(x => x?.id).filter(Boolean);\n  }\n  return [];\n};\n\nconst getMeetingDate = (m) =>\n  m.property_call_date?.start ||\n  m.property_Call_date?.start ||\n  m.property_created_time ||\n  m.created_time ||\n  m.last_edited_time ||\n  '';\n\nconst getMeetingNotes = (m) => clean([\n  m.property_raw_notes,\n  m.property_Raw_notes,\n  m.property_raw_notes_2,\n  m.property_raw_notes_3,\n  m.property_ai_summary,\n].filter(Boolean).join(' '));\n\nconst updatesByCompany = new Map();\n\nfor (const m of meetings) {\n  const when = getMeetingDate(m);\n  if (!isThisWeek(when)) continue;\n\n  const companyIds = getCompanyIdsFromMeeting(m);\n  for (const companyId of companyIds) {\n    if (newCompanyIds.has(companyId)) continue;\n\n    const company = companyById.get(companyId);\n    const companyName = clean(company ? getName(company) : 'Unknown Company');\n\n    const current = updatesByCompany.get(companyId) || {\n      company_id: companyId,\n      company_name: companyName,\n      company_website: company ? getWebsite(company) : '',\n      company_notion_url: clean(company?.url || ''),\n      meeting_count: 0,\n      latest_meeting_date: '',\n      latest_priority: '',\n      latest_recommendation: '',\n      latest_next_step: '',\n      latest_notes_excerpt: '',\n    };\n\n    current.meeting_count += 1;\n\n    const prev = current.latest_meeting_date ? new Date(current.latest_meeting_date) : null;\n    const curr = when ? new Date(when) : null;\n    const isNewer = curr && (!prev || curr > prev);\n\n    if (isNewer) {\n      current.latest_meeting_date = when;\n      current.latest_priority = clean(\n        m.property_priority || m.property_Priority ||\n        m.properties?.Priority?.select?.name || ''\n      );\n      current.latest_recommendation = clean(\n        m.property_recommendation || m.property_Recommendation ||\n        m.properties?.Recommendation?.select?.name || ''\n      );\n      current.latest_next_step = clean(m.property_next_step || m.property_Next_step || '');\n      current.latest_notes_excerpt = getMeetingNotes(m).slice(0, 1200);\n    }\n\n    updatesByCompany.set(companyId, current);\n  }\n}\n\nconst meeting_updates = Array.from(updatesByCompany.values()).sort((a, b) =>\n  new Date(b.latest_meeting_date || 0) - new Date(a.latest_meeting_date || 0)\n);\n\nreturn [{\n  json: {\n    entries: newCompanies,\n    meeting_updates,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3840, 1200],
+      "id": "842f6863-4549-4933-bca1-a80aa5d3a0a5",
+      "name": "Filter records (Date, prio, owner)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst { entries, meeting_updates } = input;\n\nconst allowedPriorities = new Set(['P0', 'P1', 'P2', 'P3']);\n\nconst buckets = {\n  P0: entries.filter(e => e._priority === 'P0'),\n  P1: entries.filter(e => e._priority === 'P1'),\n  P2: entries.filter(e => e._priority === 'P2'),\n  P3: entries.filter(e => e._priority === 'P3'),\n};\n\nconst sessionId = Date.now().toString();\n\n// Shared inline styles (injected into each section prompt so each agent call is self-contained)\nconst tableStyles = `width:100%; border-collapse:collapse; margin-bottom:24px`;\nconst thStyles = `background:#f0f0f0; padding:8px; border:1px solid #ccc; text-align:left`;\nconst tdStyles = `padding:8px; border:1px solid #ccc; vertical-align:top`;\nconst cardStyles = `border:1px solid #ddd; border-radius:4px; padding:16px; margin-bottom:20px; background:#fafafa`;\nconst h2Styles = `border-bottom:2px solid #333; padding-bottom:6px; margin-top:32px`;\nconst h3Styles = `color:#1a73e8; margin-top:28px`;\n\n// ── SECTION A: meeting updates for existing companies ──────────────────────────\nconst sectionAPrompt = `You are generating one section of a weekly VC recap email.\nOutput ONLY a valid HTML fragment for Section A — no <html>/<body> tags, no markdown, no code fences.\n\nDATA:\n${JSON.stringify(meeting_updates)}\n\nINSTRUCTIONS:\n1. Open with: <h2 style=\"${h2Styles}\">Existing Companies With New Meetings This Week</h2>\n2. If DATA is an empty array: <p>No follow-up meetings this week.</p> — stop.\n3. Otherwise render a table (style=\"${tableStyles}\") with columns: Company | New Meetings | Latest Meeting | Update\n   - <th style=\"${thStyles}\"> for headers\n   - <td style=\"${tdStyles}\"> for cells\n   - Company: hyperlink company_name to company_website if non-empty, else to company_notion_url\n   - New Meetings: the integer meeting_count\n   - Latest Meeting: latest_meeting_date formatted as \"MMM D, YYYY\" only — no time, no timezone\n   - Update: 2-3 clean prose sentences summarising the company and the key takeaway. Draw from latest_notes_excerpt but rewrite — no raw notes, no bullets.\n4. All note text is in markdown. Convert to HTML: ## headings → bold label or ignore; - bullets → <li> inside <ul>; never render ##, -, * as literal characters. Strip any line that is a Granola transcript URL.\n5. Return the HTML fragment only.`;\n\n// ── SECTION B Part 1: P0 and P1 (detailed cards) ──────────────────────────────\nconst sectionBP0P1Prompt = `You are generating one section of a weekly VC recap email.\nOutput ONLY a valid HTML fragment for the P0 and P1 sub-sections — no <html>/<body> tags, no markdown, no code fences.\n\nDATA:\nP0=${JSON.stringify(buckets.P0)}\nP1=${JSON.stringify(buckets.P1)}\n\nField names in each record: _name, _notes, _tags, _website\n\nINSTRUCTIONS:\n1. Open with: <h2 style=\"${h2Styles}\">New Companies Created This Week</h2>\n2. Then: <h3 style=\"${h3Styles}\">P0 – High Conviction / High Thesis Fit</h3>\n   - If P0 is empty: <p>No new companies in this category this week.</p>\n   - Else for each company render a card div (style=\"${cardStyles}\"):\n     a. <h4 style=\"margin-bottom:4px\"><a href=\"{_website}\">{_name}</a></h4> (omit href if _website blank)\n     b. <p><strong>Overview</strong></p> then a 3-4 sentence prose paragraph synthesised from _notes. No markdown characters.\n     c. <ul style=\"margin-top:4px; padding-left:20px\"> with 3-5 <li style=\"margin-bottom:4px\"> covering Team, Product, Traction, Funding — pulled from _notes, written as clean English phrases.\n3. Then: <h3 style=\"${h3Styles}\">P1 – Strong Companies</h3> — exact same card format as P0.\n4. CRITICAL: Do NOT move or reclassify any company. Render each company exactly where it appears in P0 or P1.\n5. All note text is in markdown. Convert to HTML. Strip Granola transcript URL lines. Never render ##, -, * as literal characters.\n6. Return the HTML fragment only.`;\n\n// ── SECTION B Part 2: P2 and P3 (table rows, much shorter) ───────────────────\nconst sectionBP2P3Prompt = `You are generating one section of a weekly VC recap email.\nOutput ONLY a valid HTML fragment for the P2 and P3 sub-sections — no <html>/<body> tags, no markdown, no code fences.\n\nDATA:\nP2=${JSON.stringify(buckets.P2)}\nP3=${JSON.stringify(buckets.P3)}\n\nField names in each record: _name, _notes, _tags, _website\n\nINSTRUCTIONS:\n1. <h3 style=\"${h3Styles}\">Low Conviction (P2)</h3>\n   - If P2 is empty: <p>No new companies in this category this week.</p>\n   - Else table (style=\"${tableStyles}\") with columns: Company Name | Overview\n     - Company Name: hyperlink _name to _website if non-empty\n     - Overview: max 2 clean prose sentences drawn from _notes. No markdown.\n2. <h3 style=\"${h3Styles}\">Companies met, not worth pursuing (P3)</h3>\n   - If P3 is empty: <p>No new companies in this category this week.</p>\n   - Else table (style=\"${tableStyles}\") with columns: Company Name | Overview | Tags\n     - Company Name: hyperlink _name to _website if non-empty\n     - Overview: 1-2 clean prose sentences from _notes. No markdown.\n     - Tags: _tags as plain comma-separated text\n3. CRITICAL: Do NOT move or reclassify any company.\n4. All note text is in markdown. Convert to HTML. Strip Granola transcript URL lines. Never render ##, -, * as literal characters.\n5. Table headers: <th style=\"${thStyles}\">, cells: <td style=\"${tdStyles}\">\n6. Return the HTML fragment only.`;\n\nreturn [\n  { json: { sessionId, section: 'A',      section_prompt: sectionAPrompt } },\n  { json: { sessionId, section: 'B_P0P1', section_prompt: sectionBP0P1Prompt } },\n  { json: { sessionId, section: 'B_P2P3', section_prompt: sectionBP2P3Prompt } },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4048, 1200],
+      "id": "bc66c438-cfce-4ab3-bb61-7a8392fc599e",
+      "name": "Split for AI Batching"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [4304, 1376],
+      "id": "c5623bdd-00e6-4761-ad7d-f5dc206b5732",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "d4Xn4WX6QMzCsAep",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.section_prompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [4304, 1200],
+      "id": "b06ed995-4141-4924-a47f-9c194008e386",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [4528, 1200],
+      "id": "agg-html-sections-001",
+      "name": "Aggregate HTML sections"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Items arrive as a single aggregated array from the Aggregate node.\n// Each item has: { section, sessionId, section_prompt, output }\nconst items = $input.first().json.data;\n\n// Ensure correct reading order regardless of execution order\nconst order = ['A', 'B_P0P1', 'B_P2P3'];\nitems.sort((a, b) => order.indexOf(a.section) - order.indexOf(b.section));\n\nconst body = items\n  .map(i => (i.output || '').trim())\n  .filter(Boolean)\n  .join('\\n');\n\nconst html = `<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:700px;margin:auto;padding:20px;\">\n${body}\n</div>`;\n\nreturn [{ json: { output: html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4752, 1200],
+      "id": "compile-html-final-001",
+      "name": "Compile Final HTML"
+    },
+    {
+      "parameters": {
+        "fromEmail": "shanewilson9898@gmail.com",
+        "toEmail": "shane@cittacapital.com",
+        "subject": "={{ 'Weekly Recap Email: Week of ' + $now.startOf('week').toFormat('MMMM d, yyyy') }}",
+        "emailFormat": "html",
+        "html": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [4976, 1200],
+      "id": "6a747625-3070-4178-9ca6-0d6eae45e939",
+      "name": "Send email1",
+      "webhookId": "00bd81b0-ab6b-469c-b577-060de6b2536d",
+      "credentials": {
+        "smtp": {
+          "id": "XMyX0pIHX5jX75Jc",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get meetings this week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Merge weekly inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get meetings this week": {
+      "main": [
+        [
+          {
+            "node": "Merge weekly inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge weekly inputs": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Filter records (Date, prio, owner)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter records (Date, prio, owner)": {
+      "main": [
+        [
+          {
+            "node": "Split for AI Batching",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split for AI Batching": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Aggregate HTML sections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate HTML sections": {
+      "main": [
+        [
+          {
+            "node": "Compile Final HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Final HTML": {
+      "main": [
+        [
+          {
+            "node": "Send email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "d8c384ab0177d459f6f6bf9a10237e6792ab0f921a1f81201ff531280f56622e"
+  }
+}
